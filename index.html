@@ -1,12 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html> 
+<html>
 <head>
-  <meta charset="utf-8"/>
   <title>Breakout Raj</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-  <link href="breakout.css" rel="stylesheet" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width", initial-scale=1.0, user-scalable="no"/>
+  <link href="breakout.css" media="screen, print" rel="stylesheet" type="text/css" /> 
 
-  <!-- Farcaster Mini App Metadata -->
+  <!-- Farcaster Mini App Metadata (non-blocking for normal web) -->
   <meta name="fc:miniapp" content='{
     "version":"1",
     "imageUrl":"https://block-breaker-seven.vercel.app/image.png",
@@ -22,7 +22,7 @@
     }
   }' />
 
-  <!-- Optional backward-compatibility -->
+  <!-- Optional backward-compat for some clients -->
   <meta name="fc:frame" content='{
     "version":"1",
     "imageUrl":"https://block-breaker-seven.vercel.app/image.png",
@@ -30,62 +30,88 @@
       "title":"BREAKOUT",
       "action":{
         "type":"launch_frame",
-        "name":"PLAY",
+        "name":"PLAT",
         "url":"https://block-breaker-seven.vercel.app",
         "splashImageUrl":"https://block-breaker-seven.vercel.app/splash.png",
         "splashBackgroundColor":"#100E09"
       }
     }
   }' />
-</head>
-<body>
+</head> 
+ 
+<body> 
   <div id="breakout">
     <canvas id="canvas">
-      <div class="unsupported">
+      <div class='unsupported'>
         Sorry, this example cannot be run because your browser does not support the &lt;canvas&gt; element
       </div>
     </canvas>
     <div id="levels">
-      <img id="next" class="disabled" src="images/up.png" title="next level">
+      <img id="next" class="disabled" src="images/up.png"   title="next level">
       <img id="prev" class="disabled" src="images/down.png" title="previous level">
       <span id="label">level:</span><span id="level"></span>
     </div>
     <div id="controls">
-      <input id="sound" type="checkbox" />
-      <label for="sound">sound</label>
+      <input id='sound' type='checkbox' />
+      <label for='sound'>sound</label>
     </div>
-    <div id="instructions" style="display:none;">
-      <div class="keyboard">
+    <div id="instructions" style='display:none;'>
+      <div class='keyboard'>
         <b>space</b> to start<br>
         <b>left/right</b> to move paddle<br>
         <b>up/down</b> to change level
       </div>
-      <div class="touch">
+      <div class='touch'>
         <b>touch here</b> to start<br>
         <b>drag</b> paddle to move<br>
       </div>
     </div>
   </div>
 
-  <!-- Game scripts -->
+  <!-- Your original game scripts -->
   <script src="game.js"></script>
   <script src="breakout.js"></script>
   <script src="levels.js"></script>
 
-  <!-- Farcaster Mini App SDK -->
-  <script type="module">
-    import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
-
-    document.addEventListener('DOMContentLoaded', () => {
-      if (window.Game && typeof Game.ready === 'function') {
-        Game.ready(function () {
-          Game.start('canvas', Breakout);
-          sdk.actions.ready({ disableNativeGestures: true });
-        });
-      } else {
-        sdk.actions.ready({ disableNativeGestures: true });
-      }
+  <!-- Your original boot code: unchanged -->
+  <script>
+    Game.ready(function() {
+      var game = Game.start('canvas', Breakout);
+      window.game = game; // optional: handy for DevTools
     });
   </script>
-</body>
+
+  <!-- Farcaster Mini App SDK: loaded separately, never blocks your game -->
+  <script type="module">
+    (async () => {
+      // If we aren't inside a Farcaster host, this will do nothing.
+      // If we are, it will dismiss the splash. Any failure is swallowed.
+      try {
+        const { sdk } = await import('https://esm.sh/@farcaster/miniapp-sdk');
+        // quick fallback in case your game boot is heavy
+        const fallback = setTimeout(() => {
+          sdk.actions.ready({ disableNativeGestures: true }).catch(() => {});
+        }, 1200);
+
+        // When the DOM is ready, try to call ready() after your canvas starts up.
+        const onReady = () => {
+          try {
+            // If your boot already ran, great; either way we signal readiness.
+            sdk.actions.ready({ disableNativeGestures: true }).catch(() => {});
+          } finally {
+            clearTimeout(fallback);
+          }
+        };
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', onReady, { once: true });
+        } else {
+          onReady();
+        }
+      } catch (e) {
+        // swallow errors so the normal website keeps working
+      }
+    })();
+  </script>
+</body> 
 </html>
