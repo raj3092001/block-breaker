@@ -224,10 +224,8 @@ Breakout = {
   },
 
   playSound: function(id) {
-    if (soundManager && this.sound) {
-      soundManager.play(id);
-    }
-  },
+  // Sounds disabled
+},
 
   ontouchmove: function(ev) {
     if (ev.targetTouches.length == 1) {
